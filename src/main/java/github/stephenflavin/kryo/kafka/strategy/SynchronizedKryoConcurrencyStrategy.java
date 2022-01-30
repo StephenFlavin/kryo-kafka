@@ -22,7 +22,7 @@ public class SynchronizedKryoConcurrencyStrategy extends KryoConcurrencyStrategy
         this.kryo = generateKryoInstance();
     }
 
-    public byte[] serialize(Object o) {
+    public synchronized byte[] serialize(Object o) {
         if (o == null) {
             return EMPTY_BYTE_ARRAY;
         }
@@ -40,7 +40,7 @@ public class SynchronizedKryoConcurrencyStrategy extends KryoConcurrencyStrategy
         }
     }
 
-    public Object deserialize(byte[] data) {
+    public synchronized Object deserialize(byte[] data) {
         if (data == null || data.length == 0) {
             return null;
         }
