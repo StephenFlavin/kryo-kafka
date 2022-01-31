@@ -2,11 +2,11 @@ package github.stephenflavin.kryo.kafka.serializer;
 
 import static github.stephenflavin.kryo.kafka.config.KryoSerializationConfig.KRYO_SERIALIZATION_CONCURRENCY_STRATEGY;
 import static github.stephenflavin.kryo.kafka.config.KryoSerializationConfig.KRYO_SERIALIZATION_REGISTERED_CLASSES;
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -51,10 +51,10 @@ class KryoSerializersTest {
         List<String> foobar = List.of("foo", "bar");
         Map<List<String>, Long> likes = Map.of(foobar, Long.MAX_VALUE);
         Map<String, Double> entities = Map.of("baz", 0.8, "zoo", 0.5);
-        CustomObject expectedOutput = new CustomObject("moo", 1, false, likes, entities);
+        ComplexObject expectedOutput = new ComplexObject("moo", 1, false, likes, entities);
 
         Map<String, ?> config = Map.of(KRYO_SERIALIZATION_CONCURRENCY_STRATEGY.toString(), clazz,
-                KRYO_SERIALIZATION_REGISTERED_CLASSES.toString(), new Class<?>[]{CustomObject.class,
+                KRYO_SERIALIZATION_REGISTERED_CLASSES.toString(), new Class<?>[]{ComplexObject.class,
                         likes.getClass(),
                         entities.getClass(),
                         foobar.getClass(),
@@ -66,13 +66,10 @@ class KryoSerializersTest {
 
         KryoDeserializer kryoDeserializer = new KryoDeserializer();
         kryoDeserializer.configure(config, true);
-        CustomObject actualDeserializedValue = (CustomObject) kryoDeserializer
+        ComplexObject actualDeserializedValue = (ComplexObject) kryoDeserializer
                 .deserialize(null, actualSerializedValue);
 
-        assertEquals(expectedOutput.string, actualDeserializedValue.string);
-        assertEquals(expectedOutput.integer, actualDeserializedValue.integer);
-        assertEquals(expectedOutput.bool, actualDeserializedValue.bool);
-        assertArrayEquals(expectedOutput.primitiveArrMaps, actualDeserializedValue.primitiveArrMaps);
+        assertEquals(expectedOutput, actualDeserializedValue);
     }
 
     @ParameterizedTest
@@ -103,7 +100,18 @@ class KryoSerializersTest {
         assertTrue(output.containsAll(expectedOutput));
     }
 
-    public static record CustomObject(String string, int integer, boolean bool, Map<?, ?>... primitiveArrMaps) {
+    public record ComplexObject(String string, int integer, boolean bool, Map<?, ?>... primitiveArrMaps) {
+        @Override
+        public boolean equals(Object otherObj) {
+            if (!(otherObj instanceof ComplexObject)) {
+                return false;
+            }
+            ComplexObject other = (ComplexObject) otherObj;
+            return this.string.equals(other.string) &&
+                    this.integer == other.integer &&
+                    this.bool == other.bool &&
+                    Arrays.equals(this.primitiveArrMaps, other.primitiveArrMaps);
+        }
     }
 
 }

@@ -5,22 +5,43 @@ User-friendly library implementing [Kryo](https://github.com/EsotericSoftware/kr
 
 ### TODO
 
- - [ ] Add integration test using testcontainers
+ - [x] Add integration test using testcontainers
  - [ ] Figure out what's wrong with PooledKryoConcurrencyStrategy performance (github issue link to come)
  - [ ] Add github action to preform maven releases
  - [ ] Investigate custom serializer configurations
 
 # Usage
-
+Producer:
 ```java
 new KafkaProducer<>(Map.of(
-    ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092",
-    ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, KryoSerializer.class,
-    ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, KryoSerializer.class,
-    KRYO_SERIALIZATION_REGISTERED_CLASSES.toString(), new Class<?>[]{CustomObject.class},
+        ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092",
+        ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, KryoSerializer.class,
+        ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, KryoSerializer.class,
+        KRYO_SERIALIZATION_REGISTERED_CLASSES.toString(), new Class<?>[]{CustomObject.class},
 //      KRYO_SERIALIZATION_REGISTERED_CLASSES_REQUIRED.toString(), false,
-    KRYO_SERIALIZATION_CONCURRENCY_STRATEGY.toString(), ThreadLocalKryoConcurrencyStrategy.class
+        KRYO_SERIALIZATION_CONCURRENCY_STRATEGY.toString(), ThreadLocalKryoConcurrencyStrategy.class
 ));
+```
+Consumer:
+```java
+new KafkaConsumer<>(Map.of(
+        ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092",
+        ConsumerConfig.GROUP_ID_CONFIG, "your-group-id",
+        ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, KryoDeserializer.class,
+        ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, KryoDeserializer.class,
+        KRYO_SERIALIZATION_REGISTERED_CLASSES.toString(), new Class<?>[]{CustomObject.class}
+));
+```
+Streams Consumer:
+```java
+Properties properties = new Properties();
+properties.putAll(Map.of(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaContainer.getBootstrapServers(),
+        StreamsConfig.APPLICATION_ID_CONFIG, topic,
+        StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, KryoSerde.class,
+        StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, KryoSerde.class,
+        KRYO_SERIALIZATION_CONCURRENCY_STRATEGY.toString(), clazz));
+...
+KafkaStreams streams = new KafkaStreams(streamsBuilder.build(), properties);
 ```
 
 ## Concurrency Strategies
