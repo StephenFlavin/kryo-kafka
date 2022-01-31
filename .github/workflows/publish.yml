@@ -1,8 +1,17 @@
-name: pr-validation
-on: pull_request
+name: Publish package to GitHub Packages
+on:
+  workflow_dispatch:
+    inputs:
+      releaseversion:
+        description: 'Release version'
+        required: true
+        default: 'X.Y.0'
 jobs:
-  run_tests:
+  publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v2
@@ -17,5 +26,7 @@ jobs:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
-      - name: Run tests with Maven
-        run: mvn -B test --file pom.xml
+      - name: Publish package
+        run: mvn -B deploy -DskipTests -Dproject.version=${{ github.event.inputs.releaseversion }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
