@@ -7,6 +7,7 @@ User-friendly library implementing [Kryo](https://github.com/EsotericSoftware/kr
 
  - [x] Add integration test using testcontainers
  - [ ] Figure out what's wrong with PooledKryoConcurrencyStrategy performance (github issue link to come)
+ - [ ] Add github action to run test suite on PRs
  - [ ] Add github action to preform maven releases
  - [ ] Investigate custom serializer configurations
 
