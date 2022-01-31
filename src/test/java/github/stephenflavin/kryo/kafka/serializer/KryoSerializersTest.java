@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -75,16 +77,19 @@ class KryoSerializersTest {
         assertArrayEquals(expectedOutput.primitiveArrMaps, actualDeserializedValue.primitiveArrMaps);
     }
 
+    static List<String> largeUUIDCollection = new ArrayList<>();
+
+    static {
+        for (int i = 0; i < 5000000; i++)
+            largeUUIDCollection.add(UUID.randomUUID().toString());
+    }
+
+    //todo cleanup after raising issue about EsotericSoftware/kryo#pooling
     @ParameterizedTest
     @ValueSource(classes = {SynchronizedKryoConcurrencyStrategy.class,
             PooledKryoConcurrencyStrategy.class,
             ThreadLocalKryoConcurrencyStrategy.class})
     public void parallel_serialize_deserialize(Class<?> clazz) {
-        List<String> expectedOutput = new ArrayList<>();
-        for (int i = 0; i < 1000000; i++) {
-            expectedOutput.add(UUID.randomUUID().toString());
-        }
-
         Map<String, ?> config = Map.of(KRYO_SERIALIZATION_CONCURRENCY_STRATEGY.toString(), clazz);
 
         KryoSerializer kryoSerializer = new KryoSerializer();
@@ -93,14 +98,41 @@ class KryoSerializersTest {
         KryoDeserializer kryoDeserializer = new KryoDeserializer();
         kryoDeserializer.configure(config, true);
 
-        Set<String> output = expectedOutput.stream()
-                .parallel()
-                .map(s -> kryoSerializer.serialize(null, s))
-                .map(b -> kryoDeserializer.deserialize(null, b))
-                .map(String.class::cast)
-                .collect(Collectors.toSet());
+        System.out.print(clazz.getSimpleName() + " -> ");
+        long total = 0;
+        long serializingTime = 0;
+        long deserializingTime = 0;
 
-        assertTrue(output.containsAll(expectedOutput));
+        for (int i = 0; i < 10; i++) {
+            Instant start = Instant.now();
+            List<byte[]> serialised = largeUUIDCollection.stream()
+                    .parallel()
+                    .map(s -> kryoSerializer.serialize(null, s))
+                    .toList();
+            Instant finishedSerializing = Instant.now();
+            serializingTime += Duration.between(start, finishedSerializing).toMillis();
+            Set<String> output = serialised.stream()
+                    .map(b -> kryoDeserializer.deserialize(null, b))
+                    .parallel()
+                    .map(String.class::cast)
+                    .collect(Collectors.toSet());
+            Instant roundTripTime = Instant.now();
+            deserializingTime += Duration.between(finishedSerializing, roundTripTime).toMillis();
+            total += Duration.between(start, roundTripTime).toMillis();
+            assertTrue(output.containsAll(largeUUIDCollection));
+        }
+
+        long averageRoundTrip = total / 10;
+        long averageSerializing = serializingTime / 10;
+        long averageDeserializing = deserializingTime / 10;
+
+        System.out.println("Average Time Spent Processing " +
+                Duration.ofMillis(averageRoundTrip) +
+                " ( serializing: " +
+                Duration.ofMillis(averageSerializing) +
+                ", deserializing: " +
+                Duration.ofMillis(averageDeserializing) +
+                " )");
     }
 
     public static record CustomObject(String string, int integer, boolean bool, Map<?, ?>... primitiveArrMaps) {
