@@ -1,15 +1,7 @@
-# kryo-kafka [WIP]
+# kryo-kafka
 
 User-friendly library implementing [Kryo](https://github.com/EsotericSoftware/kryo) serializers for
 [Apache Kafka](https://github.com/apache/kafka).
-
-### TODO
-
- - [x] Add integration test using testcontainers
- - [x] Figure out what's wrong with PooledKryoConcurrencyStrategy performance (https://github.com/EsotericSoftware/kryo/issues/881)
- - [x] Add github action to run test suite on PRs
- - [x] Add github action to preform maven releases
- - [x] Investigate custom serializer configurations (just going to leave this alone, classes can just implement KryoSerializable)
 
 # Usage
 Producer:
@@ -36,7 +28,7 @@ new KafkaConsumer<>(Map.of(
 Streams Consumer:
 ```java
 Properties properties = new Properties();
-properties.putAll(Map.of(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaContainer.getBootstrapServers(),
+properties.putAll(Map.of(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092",
         StreamsConfig.APPLICATION_ID_CONFIG, topic,
         StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, KryoSerde.class,
         StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, KryoSerde.class,
