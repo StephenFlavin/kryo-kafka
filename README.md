@@ -1,6 +1,6 @@
 # kryo-kafka
 
-User-friendly library implementing [Kryo](https://github.com/EsotericSoftware/kryo) serializers for
+Implementation of [Kryo](https://github.com/EsotericSoftware/kryo) serializers for
 [Apache Kafka](https://github.com/apache/kafka).
 
 # Usage
